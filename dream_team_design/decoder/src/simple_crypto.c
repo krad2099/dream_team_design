@@ -1,8 +1,8 @@
 /**
  * @file "simple_crypto.c"
- * @author Ben Janis
+ * @author: Dream Team (original author Ben Janis)
  * @brief Simplified Crypto API Implementation
- * @date 2025
+ * @date 3/28/2025
  *
  * This source file is part of an example system for MITRE's 2025 Embedded System CTF (eCTF).
  * This code is being provided only for educational purposes for the 2025 MITRE eCTF competition,
@@ -47,7 +47,7 @@ int encrypt_sym(uint8_t *plaintext, size_t len, uint8_t *key, uint8_t *ciphertex
 
 
     // Encrypt each block
-    for (int i = 0; i < len - 1; i += BLOCK_SIZE) {
+    for (int i = 0; i < len; i += BLOCK_SIZE) {
         result = wc_AesEncryptDirect(&ctx, ciphertext + i, plaintext + i);
         if (result != 0)
             return result; // Report error
@@ -82,7 +82,7 @@ int decrypt_sym(uint8_t *ciphertext, size_t len, uint8_t *key, uint8_t *plaintex
         return result; // Report error
 
     // Decrypt each block
-    for (int i = 0; i < len - 1; i += BLOCK_SIZE) {
+    for (int i = 0; i < len; i += BLOCK_SIZE) {
         result = wc_AesDecryptDirect(&ctx, plaintext + i, ciphertext + i);
         if (result != 0)
             return result; // Report error
