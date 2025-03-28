@@ -1,102 +1,51 @@
-"""
-Author: Ben Janis
-Date: 2025
-
-This source file is part of an example system for MITRE's 2025 Embedded System CTF
-(eCTF). This code is being provided only for educational purposes for the 2025 MITRE
-eCTF competition, and may not meet MITRE standards for quality. Use this code at your
-own risk!
-
-Copyright: Copyright (c) 2025 The MITRE Corporation
+#!/usr/bin/env python3
 """
 
-import argparse
-import json
-from pathlib import Path
+Author: Dream Team
+Date: 03/28/2025
 
-from loguru import logger
+Generate secrets for the eCTF secure system.
+"""
 
+import os
+import hashlib
+from Crypto.Cipher import AES
 
-def gen_secrets(channels: list[int]) -> bytes:
-    """Generate the contents secrets file
+BLOCK_SIZE = 16
+KEY_SIZE = 16
+HASH_SIZE = 16
 
-    This will be passed to the Encoder, ectf25_design.gen_subscription, and the build
-    process of the decoder
+def generate_key() -> bytes:
+    return os.urandom(KEY_SIZE)
 
-    :param channels: List of channel numbers that will be valid in this deployment.
-        Channel 0 is the emergency broadcast, which will always be valid and will
-        NOT be included in this list
+def encrypt_sym(plaintext: bytes, key: bytes) -> bytes:
+    if len(plaintext) % BLOCK_SIZE != 0:
+        raise ValueError("Plaintext length must be a multiple of 16 bytes")
+    cipher = AES.new(key, AES.MODE_ECB)
+    return cipher.encrypt(plaintext)
 
-    :returns: Contents of the secrets file
-    """
-    # TODO: Update this function to generate any system-wide secrets needed by
-    #   your design
+def decrypt_sym(ciphertext: bytes, key: bytes) -> bytes:
+    if len(ciphertext) % BLOCK_SIZE != 0:
+        raise ValueError("Ciphertext length must be a multiple of 16 bytes")
+    cipher = AES.new(key, AES.MODE_ECB)
+    return cipher.decrypt(ciphertext)
 
-    # Create the secrets object
-    # You can change this to generate any secret material
-    # The secrets file will never be shared with attackers
-    secrets = {
-        "channels": channels,
-        "some_secrets": "EXAMPLE",
-    }
-
-    # NOTE: if you choose to use JSON for your file type, you will not be able to
-    # store binary data, and must either use a different file type or encode the
-    # binary data to hex, base64, or another type of ASCII-only encoding
-    return json.dumps(secrets).encode()
-
-
-def parse_args():
-    """Define and parse the command line arguments
-
-    NOTE: Your design must not change this function
-    """
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--force",
-        "-f",
-        action="store_true",
-        help="Force creation of secrets file, overwriting existing file",
-    )
-    parser.add_argument(
-        "secrets_file",
-        type=Path,
-        help="Path to the secrets file to be created",
-    )
-    parser.add_argument(
-        "channels",
-        nargs="+",
-        type=int,
-        help="Supported channels. Channel 0 (broadcast) is always valid and will not"
-        " be provided in this list",
-    )
-    return parser.parse_args()
-
+def hash_data(data: bytes) -> bytes:
+    m = hashlib.md5()
+    m.update(data)
+    return m.digest()
 
 def main():
-    """Main function of gen_secrets
-
-    You will likely not have to change this function
-    """
-    # Parse the command line arguments
-    args = parse_args()
-
-    secrets = gen_secrets(args.channels)
-
-    # Print the generated secrets for your own debugging
-    # Attackers will NOT have access to the output of this, but feel free to remove
-    #
-    # NOTE: Printing sensitive data is generally not good security practice
-    logger.debug(f"Generated secrets: {secrets}")
-
-    # Open the file, erroring if the file exists unless the --force arg is provided
-    with open(args.secrets_file, "wb" if args.force else "xb") as f:
-        # Dump the secrets to the file
-        f.write(secrets)
-
-    # For your own debugging. Feel free to remove
-    logger.success(f"Wrote secrets to {str(args.secrets_file.absolute())}")
-
+    key = generate_key()
+    print("Generated Key:", key.hex())
+    # Test encryption of a block of zeros.
+    plaintext = b'\x00' * BLOCK_SIZE
+    ciphertext = encrypt_sym(plaintext, key)
+    print("Encrypted zeros:", ciphertext.hex())
+    decrypted = decrypt_sym(ciphertext, key)
+    print("Decrypted:", decrypted.hex())
+    h = hash_data(plaintext)
+    print("MD5 Hash of zeros:", h.hex())
 
 if __name__ == "__main__":
     main()
