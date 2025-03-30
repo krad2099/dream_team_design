@@ -31,16 +31,44 @@ def hash_data(data: bytes) -> bytes:
     m.update(data)
     return m.digest()
 
+class Encoder:
+    def __init__(self, key: bytes):
+        if len(key) != KEY_SIZE:
+            raise ValueError("Key must be exactly 16 bytes long")
+        self.key = key
+
+    def encode(self, plaintext: bytes) -> bytes:
+        """
+        Encrypts the plaintext using AES-128 in ECB mode and appends an MD5 hash
+        of the ciphertext for integrity. The plaintext must be a multiple of 16 bytes.
+        
+        Returns:
+            The concatenation of the ciphertext and its MD5 hash.
+        """
+        ciphertext = encrypt_sym(plaintext, self.key)
+        digest = hash_data(ciphertext)
+        return ciphertext + digest
+
 def main():
-    # Example usage: encrypt and decrypt a 16-byte message.
+    # Example usage: encrypt a 16-byte message and verify integrity upon decryption.
     key = b'\x00' * KEY_SIZE
+    encoder = Encoder(key)
     plaintext = b'Crypto Example!!'  # Exactly 16 bytes.
-    ciphertext = encrypt_sym(plaintext, key)
-    print("Encrypted:", ciphertext.hex())
-    decrypted = decrypt_sym(ciphertext, key)
-    print("Decrypted:", decrypted)
-    h = hash_data(ciphertext)
-    print("MD5 Hash:", h.hex())
+    
+    encoded_message = encoder.encode(plaintext)
+    print("Encoded message (ciphertext + MD5):", encoded_message.hex())
+    
+    # For demonstration: separate the ciphertext and the appended hash.
+    ciphertext = encoded_message[:-HASH_SIZE]
+    provided_hash = encoded_message[-HASH_SIZE:]
+    computed_hash = hash_data(ciphertext)
+    
+    if provided_hash == computed_hash:
+        print("Hash verified.")
+        decrypted = decrypt_sym(ciphertext, key)
+        print("Decrypted:", decrypted)
+    else:
+        print("Hash mismatch!")
 
 if __name__ == "__main__":
     main()
